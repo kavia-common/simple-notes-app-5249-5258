@@ -1,4 +1,4 @@
-import { Save, Trash2, FileText } from 'lucide';
+import { Save, Trash2, FileText } from '../utils/icons.js';
 import { validateNote } from '../utils/index.js';
 
 // PUBLIC_INTERFACE

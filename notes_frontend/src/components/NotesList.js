@@ -1,4 +1,4 @@
-import { Search, Plus } from 'lucide';
+import { Search, Plus } from '../utils/icons.js';
 import { formatDate, generatePreview } from '../utils/index.js';
 
 // PUBLIC_INTERFACE

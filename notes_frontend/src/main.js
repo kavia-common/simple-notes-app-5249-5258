@@ -85,12 +85,54 @@ class NotesApp {
       }
     } catch (error) {
       console.error('Failed to load notes:', error);
-      appState.error = handleApiError(error);
-      appState.notes = [];
+      // Provide fallback data when API is not available
+      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+        console.log('Backend not available, using demo mode');
+        appState.notes = this.getDemoNotes();
+        appState.error = 'Backend not available - using demo mode. Your changes will not be saved.';
+        
+        // Select first demo note
+        if (!appState.selectedNote && appState.notes.length > 0) {
+          appState.selectedNote = appState.notes[0];
+        }
+      } else {
+        appState.error = handleApiError(error);
+        appState.notes = [];
+      }
     } finally {
       appState.loading = false;
       this.render();
     }
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * Get demo notes for when API is not available
+   */
+  getDemoNotes() {
+    return [
+      {
+        id: 'demo1',
+        title: 'Welcome to Notes App',
+        content: 'This is a demo note. The backend is not currently available, so this is running in demo mode.\n\nYou can still explore the interface and see how the app works!\n\nFeatures:\n- Create and edit notes\n- Search through notes\n- Modern, clean interface\n- Responsive design',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 'demo2',
+        title: 'Getting Started',
+        content: 'To use this notes app:\n\n1. Click "New Note" to create a note\n2. Type your title and content\n3. Use Ctrl+S to save (when backend is available)\n4. Use the search box to find notes\n5. Click on any note in the sidebar to edit it\n\nThis demo shows the full interface without a backend connection.',
+        created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        updated_at: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        id: 'demo3',
+        title: 'Features Overview',
+        content: 'This notes application includes:\n\n✅ Clean, modern design\n✅ Real-time search\n✅ Responsive layout\n✅ Keyboard shortcuts\n✅ Auto-save functionality\n✅ Note preview in sidebar\n✅ Date formatting\n\nThe app is built with Vite and vanilla JavaScript for optimal performance.',
+        created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+        updated_at: new Date(Date.now() - 172800000).toISOString()
+      }
+    ];
   }
 
   // PUBLIC_INTERFACE
@@ -290,34 +332,75 @@ class NotesApp {
    * Render the entire application
    */
   render() {
-    const notesListHtml = NotesList({
-      notes: appState.notes,
-      selectedNoteId: appState.selectedNote ? appState.selectedNote.id : null,
-      searchQuery: appState.searchQuery,
-      loading: appState.loading
-    });
+    if (!this.appElement) {
+      console.error('App element not found');
+      return;
+    }
 
-    const noteEditorHtml = NoteEditor({
-      note: appState.selectedNote,
-      saving: appState.saving,
-      deleting: appState.deleting,
-      error: appState.error
-    });
+    try {
+      const notesListHtml = NotesList({
+        notes: appState.notes,
+        selectedNoteId: appState.selectedNote ? appState.selectedNote.id : null,
+        searchQuery: appState.searchQuery,
+        loading: appState.loading
+      });
 
-    this.appElement.innerHTML = `
-      <div class="app-container">
-        ${notesListHtml}
-        ${noteEditorHtml}
-      </div>
-    `;
+      const noteEditorHtml = NoteEditor({
+        note: appState.selectedNote,
+        saving: appState.saving,
+        deleting: appState.deleting,
+        error: appState.error
+      });
+
+      this.appElement.innerHTML = `
+        <div class="app-container">
+          ${notesListHtml}
+          ${noteEditorHtml}
+        </div>
+      `;
+    } catch (error) {
+      console.error('Error rendering app:', error);
+      this.appElement.innerHTML = `
+        <div class="app-container">
+          <div class="error" style="margin: 2rem; padding: 2rem; text-align: center;">
+            <h2>Error Loading Application</h2>
+            <p>There was an error loading the notes application. Please check the console for details.</p>
+            <button onclick="window.location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">
+              Reload Page
+            </button>
+          </div>
+        </div>
+      `;
+    }
   }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  new NotesApp();
-  // Make appState globally accessible for components
-  window.appState = appState;
+  try {
+    console.log('Initializing Notes App...');
+    const app = new NotesApp();
+    // Make appState globally accessible for components
+    window.appState = appState;
+    window.notesApp = app;
+    console.log('Notes App initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Notes App:', error);
+    // Fallback UI
+    const appElement = document.querySelector('#app');
+    if (appElement) {
+      appElement.innerHTML = `
+        <div style="padding: 2rem; text-align: center; font-family: system-ui, sans-serif;">
+          <h1 style="color: #e74c3c;">Application Error</h1>
+          <p>Failed to initialize the Notes application.</p>
+          <p style="color: #666; font-size: 0.9em;">Check the browser console for details.</p>
+          <button onclick="window.location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Reload Page
+          </button>
+        </div>
+      `;
+    }
+  }
 });
 
 // Handle browser back/forward navigation
