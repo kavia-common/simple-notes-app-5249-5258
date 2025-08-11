@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
+import globals from "globals";
 
 export default [
   js.configs.recommended,
@@ -25,6 +26,10 @@ export default [
       parserOptions: {
         project: "./tsconfig.json",
       },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
     },
     plugins: {
       "@typescript-eslint": tseslint,
@@ -34,10 +39,18 @@ export default [
     },
   },
   {
+    files: ["**/*.js", "**/*.mjs"],
     languageOptions: {
       globals: {
-        document: "readonly",
+        ...globals.browser,
+        ...globals.node,
       },
+    },
+    rules: {
+      "no-unused-vars": ["error", { 
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }],
     },
   },
 ];
